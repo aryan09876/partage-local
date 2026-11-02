@@ -66,6 +66,9 @@ const has = (cmd) => (WIN ? run('where', [cmd]).ok : run('sh', ['-c', `command -
 const ps = (script) => run('powershell', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script]);
 const psq = (s) => `'${String(s).replace(/'/g, "''")}'`;
 
+// chemin réel de node : fnm crée un lien par terminal, qui disparaît à sa fermeture
+function realNode() { try { return fs.realpathSync(process.execPath); } catch { return process.execPath; } }
+
 function isAdmin() { return WIN ? run('net', ['session']).ok : process.getuid() === 0; }
 function needAdmin(args) {
   if (isAdmin()) return;
@@ -142,11 +145,20 @@ function askHidden(q) {
 }
 
 // ---------- réseau ----------
+// adaptateurs virtuels (Docker, VirtualBox, VMware, Hyper-V, WSL) : jamais le réseau local réel
+const VIRTUAL_IF = /^(lo|docker|br-|veth|virbr|vEthernet)|VirtualBox|VMware|VMnet|Hyper-V|WSL/i;
+let mainIpCache;
+function mainIp() { // Windows : adresse locale utilisée pour sortir vers internet
+  if (mainIpCache === undefined) mainIpCache = ps('(Find-NetRoute -RemoteIPAddress 1.1.1.1 -ErrorAction SilentlyContinue | Where-Object IPAddress | Select-Object -First 1).IPAddress').out.trim() || null;
+  return mainIpCache;
+}
 function lanCidr() {
   let dev = null;
   if (LINUX) dev = /dev (\S+)/.exec(run('ip', ['route', 'show', 'default']).out)?.[1] || null;
+  if (MAC) dev = /interface: (\S+)/.exec(run('route', ['-n', 'get', 'default']).out)?.[1] || null;
   const ifs = os.networkInterfaces();
-  const names = dev ? [dev] : Object.keys(ifs).filter((n) => !/^(lo|docker|br-|veth|virbr|tailscale|utun|vEthernet)/i.test(n));
+  if (WIN) { const ip = mainIp(); dev = Object.keys(ifs).find((n) => ifs[n].some((a) => a.address === ip)) || null; }
+  const names = dev ? [dev] : Object.keys(ifs).filter((n) => !VIRTUAL_IF.test(n) && !/^tailscale|^utun/i.test(n));
   for (const n of names) {
     for (const a of ifs[n] || []) {
       if (a.family !== 'IPv4' || a.internal) continue;
@@ -162,10 +174,11 @@ function lanCidr() {
 function lanIps() {
   const out = [];
   for (const [n, list] of Object.entries(os.networkInterfaces())) {
-    if (/^(docker|br-|veth|virbr|vEthernet)/i.test(n)) continue;
+    if (VIRTUAL_IF.test(n)) continue;
     for (const a of list || []) if (a.family === 'IPv4' && !a.internal) out.push(a.address);
   }
-  return out;
+  const main = WIN ? mainIp() : null; // adresse du réseau principal en premier
+  return main && out.includes(main) ? [main, ...out.filter((ip) => ip !== main)] : out;
 }
 function portFree(port, host) {
   return new Promise((res) => {
@@ -197,6 +210,27 @@ async function waitDown(cfg) {
   for (let i = 0; i < 30; i++) { if (!(await health(cfg))) return true; await new Promise((r) => setTimeout(r, 500)); }
   return false;
 }
+// explique pourquoi le serveur ne répond pas : état du service et fin du journal
+function explainDown(cfg) {
+  if (WIN) {
+    const info = ps(`$t = Get-ScheduledTask -TaskName ${psq(TASK)} -ErrorAction SilentlyContinue; if ($t) { $i = $t | Get-ScheduledTaskInfo; "$($t.State)|$($i.LastTaskResult)|$($t.Actions[0].Execute)" }`).out.trim();
+    const [state, code, exe] = info.split('|');
+    if (state) {
+      const c = Number(code) >>> 0;
+      const known = { 0x41301: 'en cours', 0x41303: 'jamais lancée', 0x80070002: 'node.exe introuvable', 0x80070003: 'dossier introuvable', 0x8007010B: 'dossier de travail invalide', 0x800710E0: 'refusée par Windows (droits ou conditions)', 1: 'le serveur s\'est arrêté avec une erreur (voir journal ci-dessous)' };
+      say(`  Tâche planifiée : ${state} · dernier résultat 0x${c.toString(16)}${known[c] ? ` (${known[c]})` : ''}`);
+      say(`  Programme : ${exe}${exe && !fs.existsSync(exe) ? red('  ← introuvable') : ''}`);
+    }
+  }
+  if (LINUX) { spawnSync('journalctl', ['-u', 'partage', '--no-pager', '-n', '15', '-o', 'cat'], { stdio: 'inherit' }); return; }
+  const f = path.join(cfg.DATA_DIR, 'partage.log');
+  if (fs.existsSync(f)) {
+    say(dim(`  Fin du journal (${f}) :`));
+    say(fs.readFileSync(f, 'utf8').split(/\r?\n/).filter(Boolean).slice(-15).map((l) => `    ${l}`).join('\n'));
+  } else say(`  Aucun journal : le serveur n'a pas démarré du tout (${f})`);
+  say(dim(`  Pour voir l'erreur directement : arrêtez le service (partage stop) puis lancez « node server.js » dans ${APP}`));
+}
+
 function showUrls(cfg) {
   const s = scheme(cfg);
   say(`  ${bold('Adresses :')}`);
@@ -265,7 +299,7 @@ function fwApply(cfg) {
 // ---------- service (systemd / tâche planifiée / launchd) ----------
 const svc = {
   install(cfg) {
-    const node = process.execPath;
+    const node = realNode();
     const server = path.join(APP, 'server.js');
     if (LINUX) {
       const group = run('id', ['-gn', cfg.SERVICE_USER]).out || cfg.SERVICE_USER;
@@ -435,7 +469,7 @@ async function cmdInstall(args) {
   svc.install(cfg);
   if (wasActive) svc.restart(); else svc.start();
   if (await waitUp(cfg)) ok(`Partage est en marche et démarrera automatiquement avec la machine`);
-  else warn('Le service ne répond pas encore : partage logs');
+  else { warn('Le service ne répond pas'); explainDown(cfg); }
   say();
   showUrls(cfg);
   say(`\n${dim('Gérer : partage status · partage logs · partage set port 8080 · partage set access local · partage doctor')}`);
@@ -485,8 +519,7 @@ async function cmdStatus() {
   const cfg = loadConf();
   if (!svc.installed()) { warn('Partage n\'est pas installé : partage install'); return; }
   if (await health(cfg)) ok(`Partage est en marche (${scheme(cfg)}, port ${cfg.PORT})`);
-  else if (svc.active()) warn('Le service tourne mais ne répond pas encore');
-  else warn('Partage est arrêté : partage start');
+  else { warn(svc.active() ? 'Le service tourne mais ne répond pas' : 'Partage est arrêté : partage start'); explainDown(cfg); }
   showUrls(cfg);
 }
 
@@ -517,7 +550,7 @@ async function cmdSimple(action) {
   if (!r && action !== 'stop') warn(`${action} : la commande a échoué`);
   if (action === 'stop') { ok('Partage est arrêté'); return; }
   const cfg = loadConf();
-  if (await waitUp(cfg)) ok(`Partage est en marche`); else warn('Partage ne répond pas : partage logs');
+  if (await waitUp(cfg)) ok(`Partage est en marche`); else { warn('Partage ne répond pas'); explainDown(cfg); }
 }
 
 async function cmdPassword() {
@@ -575,7 +608,9 @@ async function cmdDoctor() {
   const major = Number(process.versions.node.split('.')[0]);
   (major >= 20 ? ok : warn)(`Node.js ${process.version}${major >= 20 ? '' : ' (20 ou plus récent requis)'}`);
   svc.installed() ? ok(`Service installé (${LINUX ? 'systemd' : WIN ? 'tâche planifiée' : 'launchd'})`) : warn('Service non installé : partage install');
-  (await health(cfg)) ? ok(`Le serveur répond (${scheme(cfg)}://127.0.0.1:${cfg.PORT})`) : warn(`Le serveur ne répond pas sur le port ${cfg.PORT}`);
+  const up = await health(cfg);
+  up ? ok(`Le serveur répond (${scheme(cfg)}://127.0.0.1:${cfg.PORT})`) : warn(`Le serveur ne répond pas sur le port ${cfg.PORT}`);
+  if (!up && svc.installed()) explainDown(cfg);
   fs.existsSync(path.join(APP, 'auth.json')) ? ok('Mot de passe configuré') : warn('Aucun mot de passe : accès ouvert à tous !');
   const crt = path.join(APP, 'certs', 'server.crt');
   if (fs.existsSync(crt)) {

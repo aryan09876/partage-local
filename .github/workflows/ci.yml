@@ -12,7 +12,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        node: [20, 22]
+        node: [20, 22, 24]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -73,3 +73,20 @@ jobs:
           cat partage.env 2>/dev/null || true
           if [ "$RUNNER_OS" = Linux ]; then sudo journalctl -u partage --no-pager -n 80 || true; fi
           cat data/partage.log 2>/dev/null || true
+
+  windows-system-node:
+    name: Installation Windows avec Node de C:\Program Files
+    runs-on: windows-latest
+    env:
+      PARTAGE_PASSWORD: mot-de-passe-ci-123
+      NO_COLOR: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Installer avec le Node du système (chemin avec espace)
+        run: |
+          & "C:\Program Files\nodejs\node.exe" --version
+          & "C:\Program Files\nodejs\node.exe" manage.js install --yes --port 4999 --access lan --https auto
+      - run: '& "C:\Program Files\nodejs\node.exe" .github/ci-health.mjs 4999 https'
+      - if: always()
+        run: '& "C:\Program Files\nodejs\node.exe" manage.js doctor'
+      - run: '& "C:\Program Files\nodejs\node.exe" manage.js uninstall --purge'
