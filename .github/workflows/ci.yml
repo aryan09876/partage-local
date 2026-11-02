@@ -1,0 +1,75 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: Tests (${{ matrix.os }}, Node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: node --test
+
+  install:
+    name: Installation du service (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    env:
+      PARTAGE_PASSWORD: mot-de-passe-ci-123
+      NO_COLOR: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Installer (Linux / macOS)
+        if: runner.os != 'Windows'
+        run: sudo env "PATH=$PATH" PARTAGE_PASSWORD="$PARTAGE_PASSWORD" NO_COLOR=1 PARTAGE_USER="$USER" node manage.js install --yes --port 4999 --access lan --https auto
+      - name: Installer (Windows)
+        if: runner.os == 'Windows'
+        run: node manage.js install --yes --port 4999 --access lan --https auto
+
+      - name: Le service répond en HTTPS
+        run: node .github/ci-health.mjs 4999 https
+      - run: node manage.js status
+      - run: node manage.js doctor
+
+      - name: Changer de port (Linux / macOS)
+        if: runner.os != 'Windows'
+        run: sudo env "PATH=$PATH" NO_COLOR=1 node manage.js set port 5001
+      - name: Changer de port (Windows)
+        if: runner.os == 'Windows'
+        run: node manage.js set port 5001
+      - name: Le service répond sur le nouveau port
+        run: node .github/ci-health.mjs 5001 https
+
+      - name: Désinstaller (Linux / macOS)
+        if: runner.os != 'Windows'
+        run: sudo env "PATH=$PATH" NO_COLOR=1 node manage.js uninstall --purge
+      - name: Désinstaller (Windows)
+        if: runner.os == 'Windows'
+        run: node manage.js uninstall --purge
+      - name: Le service est bien arrêté
+        run: node .github/ci-health.mjs 5001 https --expect-down
+
+      - name: Journaux en cas d'échec
+        if: failure()
+        shell: bash
+        run: |
+          cat partage.env 2>/dev/null || true
+          if [ "$RUNNER_OS" = Linux ]; then sudo journalctl -u partage --no-pager -n 80 || true; fi
+          cat data/partage.log 2>/dev/null || true

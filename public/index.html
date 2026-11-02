@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Partage</title>
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%2340a0ff'/%3E%3Cstop offset='1' stop-color='%23006be6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='7.5' fill='url(%23g)'/%3E%3Cpath d='M11 22V10m0 0-4 4m4-4 4 4M21 10v12m0 0-4-4m4 4 4-4' stroke='white' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="head">
+  <div class="head-in">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">
+        <svg viewBox="0 0 32 32"><path d="M11 22V10m0 0-4 4m4-4 4 4M21 10v12m0 0-4-4m4 4 4-4"/></svg>
+      </span>
+      <div class="brand-txt">
+        <h1>Partage</h1>
+        <span class="sub" id="host"></span>
+      </div>
+    </div>
+    <div class="status">
+      <span class="live" id="live" data-state="connecting"><i></i><span id="liveText">Connexion…</span></span>
+      <span class="chip" id="online" title="">0 appareil</span>
+      <div class="chip disk" id="disk" title="Espace disque">
+        <div class="meter"><i id="diskFill"></i></div>
+        <span id="diskText">—</span>
+      </div>
+      <button class="chip icon-chip" id="qrBtn" title="Ouvrir sur un autre appareil" aria-label="Ouvrir sur un autre appareil">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><path d="M14 14h2v2h-2zM18 18h2v2h-2zM14 18h2M18 14h2"/></svg>
+      </button>
+      <button class="chip who" id="whoBtn" title="Changer votre nom"><span class="avatar" id="whoAvatar"></span><span id="whoName">…</span></button>
+      <button class="chip icon-chip out" id="logoutBtn" title="Se déconnecter" aria-label="Se déconnecter">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 16l-4-4 4-4M6 12h10"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="topbar" id="topbar" hidden>
+    <div class="topbar-track"><div class="topbar-fill" id="topbarFill"></div></div>
+    <span class="topbar-text" id="topbarText"></span>
+  </div>
+</header>
+
+<main class="layout">
+  <section class="files">
+    <div class="toolbar">
+      <nav class="crumbs" id="crumbs" aria-label="Emplacement"></nav>
+      <div class="actions">
+        <label class="search">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>
+          <input id="search" type="search" placeholder="Rechercher" autocomplete="off" aria-label="Rechercher dans ce dossier">
+        </label>
+        <div class="seg view-seg" role="radiogroup" aria-label="Affichage">
+          <button role="radio" data-view="list" title="Liste" aria-label="Liste"><svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg></button>
+          <button role="radio" data-view="grid" title="Grille" aria-label="Grille"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg></button>
+        </div>
+        <button class="btn outline" id="mkdirBtn">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4l2 2h9A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/><path d="M12 10.5v5M9.5 13h5"/></svg>
+          <span>Nouveau dossier</span>
+        </button>
+        <button class="btn outline" id="pickFolder">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4l2 2h9A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/><path d="M12 16v-5m0 0-2.5 2.5M12 11l2.5 2.5"/></svg>
+          <span>Envoyer un dossier</span>
+        </button>
+        <button class="btn primary" id="pickFiles">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0-5 5m5-5 5 5M5 20h14"/></svg>
+          <span>Envoyer des fichiers</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="group" id="filesGroup">
+      <div class="drop" id="drop">
+        <span class="drop-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 16V4m0 0-5 5m5-5 5 5M5 20h14"/></svg></span>
+        <span class="drop-txt">
+          <strong>Déposez ou collez des fichiers</strong>
+          <span>Glisser-déposer n'importe où, ou Ctrl+V. Pas de limite de taille, reprise automatique en cas de coupure.</span>
+        </span>
+      </div>
+      <div class="list-head" id="listHead">
+        <label class="ck" title="Tout sélectionner"><input type="checkbox" id="selAll" aria-label="Tout sélectionner"><span></span></label>
+        <button data-sort="name">Nom</button>
+        <button data-sort="size">Taille</button>
+        <button data-sort="mtime">Modifié</button>
+        <span></span>
+      </div>
+      <ul class="list" id="list"></ul>
+      <div class="empty" id="empty" hidden></div>
+    </div>
+    <div class="list-foot" id="listFoot"></div>
+  </section>
+
+  <aside class="side" id="side">
+    <div class="seg tabs" role="tablist" aria-label="Panneaux">
+      <button role="tab" data-tab="transfers">Transferts<span class="count" id="cTransfers" hidden></span></button>
+      <button role="tab" data-tab="clips">Presse-papiers<span class="count" id="cClips" hidden></span></button>
+      <button role="tab" data-tab="notes">Notes<span class="count" id="cNotes" hidden></span></button>
+      <button role="tab" data-tab="links">Liens<span class="count" id="cLinks" hidden></span></button>
+      <button role="tab" data-tab="activity">Activité</button>
+    </div>
+
+    <section class="panel transfers" data-panel="transfers">
+      <div class="panel-head">
+        <h2>Transferts</h2>
+        <button class="link" id="clearDone" hidden>Effacer</button>
+      </div>
+      <div class="group">
+        <div class="summary" id="summary" hidden>
+          <svg class="ring big" viewBox="0 0 36 36" aria-hidden="true"><circle class="trk" cx="18" cy="18" r="15.5"/><circle class="val" id="sumRing" cx="18" cy="18" r="15.5" pathLength="100"/></svg>
+          <div class="summary-txt">
+            <strong id="sumRight" class="num"></strong>
+            <span id="sumLeft"></span>
+          </div>
+        </div>
+        <ul class="tlist" id="tlist"></ul>
+        <p class="placeholder" id="tEmpty">Aucun transfert. Les envois des autres appareils s'affichent aussi ici.</p>
+      </div>
+    </section>
+
+    <section class="panel clips" data-panel="clips" hidden>
+      <div class="panel-head">
+        <h2>Presse-papiers</h2>
+        <button class="link" id="clearClips" hidden>Tout effacer</button>
+      </div>
+      <div class="group">
+        <form class="clip-new" id="clipForm">
+          <textarea id="clipText" rows="3" placeholder="Écrivez ou collez du texte, un lien, un code… Il apparaît aussitôt sur tous les appareils." aria-label="Texte à partager"></textarea>
+          <div class="clip-bar">
+            <span class="hint" id="clipHint">Ctrl+Entrée pour envoyer</span>
+            <button type="button" class="btn outline sm" id="clipPaste">Coller</button>
+            <button type="submit" class="btn primary sm" id="clipSend">Partager</button>
+          </div>
+        </form>
+        <ul class="clist" id="clist"></ul>
+        <p class="placeholder" id="clipEmpty">Rien dans le presse-papiers partagé.</p>
+      </div>
+    </section>
+
+    <section class="panel notes" data-panel="notes" hidden>
+      <div class="panel-head"><h2>Notes partagées</h2><button class="link" id="noteNew">Nouvelle note</button></div>
+      <div class="group">
+        <p class="notes-intro">Un bloc-notes avec un lien court : tout le monde peut le lire (protégé par mot de passe si vous voulez), seul vous pouvez le modifier. Les changements apparaissent en direct.</p>
+        <ul class="clist" id="nlist"></ul>
+        <p class="placeholder" id="notesEmpty">Aucune note créée depuis cet appareil.</p>
+      </div>
+    </section>
+
+    <section class="panel links" data-panel="links" hidden>
+      <div class="panel-head"><h2>Liens publics</h2></div>
+      <div class="group">
+        <ul class="llist" id="llist"></ul>
+        <p class="placeholder" id="linksEmpty">Aucun lien public. Utilisez « Partager » sur un fichier ou un dossier pour en créer un : il s'ouvre sans mot de passe.</p>
+      </div>
+    </section>
+
+    <section class="panel activity" data-panel="activity" hidden>
+      <div class="panel-head"><h2>Activité</h2><button class="link" id="clearFeed" hidden>Effacer</button></div>
+      <div class="group">
+        <ul class="feed" id="feed"></ul>
+        <p class="placeholder" id="feedEmpty">Rien pour l'instant.</p>
+      </div>
+    </section>
+  </aside>
+</main>
+
+<!-- barre de sélection multiple -->
+<div class="selbar" id="selbar" hidden>
+  <span class="sel-txt" id="selTxt"></span>
+  <button class="btn ghost sm" id="selDl"><svg viewBox="0 0 24 24"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></svg><span>Télécharger</span></button>
+  <button class="btn ghost sm" id="selShare"><svg viewBox="0 0 24 24"><path d="M12 15V4m0 0-4 4m4-4 4 4M6 12v6a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-6"/></svg><span>Partager</span></button>
+  <button class="btn ghost sm danger-txt" id="selDel"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg><span>Supprimer</span></button>
+  <button class="ib sel-x" id="selClear" title="Tout désélectionner" aria-label="Tout désélectionner"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+</div>
+
+<!-- menu contextuel -->
+<div class="menu" id="menu" role="menu" hidden></div>
+
+<!-- visionneuse -->
+<div class="viewer" id="viewer" hidden aria-modal="true" role="dialog" aria-label="Aperçu">
+  <div class="v-top">
+    <button class="v-btn" id="vClose" title="Fermer (Échap)" aria-label="Fermer"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <div class="v-title"><strong id="vName"></strong><span id="vMeta"></span></div>
+    <a class="v-btn" id="vDl" title="Télécharger" aria-label="Télécharger" download><svg viewBox="0 0 24 24"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></svg></a>
+    <button class="v-btn" id="vShare" title="Partager" aria-label="Partager"><svg viewBox="0 0 24 24"><path d="M12 15V4m0 0-4 4m4-4 4 4M6 12v6a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-6"/></svg></button>
+  </div>
+  <div class="v-stage" id="vStage"></div>
+  <button class="v-nav prev" id="vPrev" aria-label="Précédent"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button>
+  <button class="v-nav next" id="vNext" aria-label="Suivant"><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button>
+</div>
+
+<!-- partage public -->
+<dialog id="shareDlg" class="wide">
+  <form method="dialog" class="share-form" id="shareForm">
+    <div class="dlg-head">
+      <h3 id="shTitle">Partager</h3>
+      <button class="ib" value="cancel" aria-label="Fermer"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <p class="muted-txt" id="shScope">Le lien s'ouvre <b>sans mot de passe</b>, pour toute personne qui peut joindre ce serveur (réseau local ou Tailscale).</p>
+    <div id="shOptions">
+      <div class="field">
+        <span class="label">Expiration</span>
+        <div class="seg full" id="shExp">
+          <button type="button" data-v="3600">1 h</button>
+          <button type="button" data-v="86400">24 h</button>
+          <button type="button" data-v="604800" class="on">7 jours</button>
+          <button type="button" data-v="2592000">30 jours</button>
+          <button type="button" data-v="0">Jamais</button>
+        </div>
+      </div>
+      <div class="field">
+        <span class="label">Téléchargements</span>
+        <div class="seg full" id="shMax">
+          <button type="button" data-v="0" class="on">Illimités</button>
+          <button type="button" data-v="1">1 seul</button>
+          <button type="button" data-v="5">5</button>
+          <button type="button" data-v="10">10</button>
+        </div>
+      </div>
+      <div class="field" id="shNameField" hidden>
+        <span class="label">Titre affiché (facultatif)</span>
+        <input class="input" id="shName" maxlength="120" placeholder="ex. Photos du week-end" autocomplete="off">
+      </div>
+      <div class="field">
+        <span class="label">Mot de passe (facultatif)</span>
+        <input class="input" type="password" id="shPw" placeholder="Aucun : le lien suffit pour ouvrir" autocomplete="new-password">
+      </div>
+      <div class="dlg-actions">
+        <button class="btn outline" value="cancel" formnovalidate>Annuler</button>
+        <button class="btn primary" type="button" id="shCreate" autofocus>Créer le lien</button>
+      </div>
+    </div>
+    <div id="shResult" hidden>
+      <div class="sh-out">
+        <div class="qr" id="shQr"></div>
+        <div class="sh-side">
+          <div class="sh-code" id="shCode" title="Code du lien"></div>
+          <div class="copyline"><input class="input" id="shUrl" readonly aria-label="Lien public"><button type="button" class="btn primary" id="shCopy">Copier</button></div>
+          <p class="sh-info" id="shInfo"></p>
+          <div class="sh-btns">
+            <a class="btn outline sm" id="shOpen" target="_blank" rel="noopener">Ouvrir</a>
+            <button type="button" class="btn outline sm" id="shNative" hidden>Envoyer…</button>
+            <button type="button" class="btn outline sm danger-txt" id="shRevoke">Désactiver</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<!-- QR : ouvrir sur un autre appareil -->
+<dialog id="qrDlg">
+  <form method="dialog" class="qr-form">
+    <div class="dlg-head">
+      <h3>Ouvrir sur un autre appareil</h3>
+      <button class="ib" value="cancel" aria-label="Fermer"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <p class="muted-txt">Scannez avec l'appareil photo du téléphone. Le mot de passe sera demandé.</p>
+    <div class="qr big" id="qrBox"></div>
+    <div class="seg full addr-seg" id="qrAddrs"></div>
+    <div class="copyline"><input class="input" id="qrUrl" readonly aria-label="Adresse"><button type="button" class="btn outline" id="qrCopy" autofocus>Copier</button></div>
+  </form>
+</dialog>
+
+<div class="overlay" id="overlay" aria-hidden="true">
+  <div class="overlay-box">
+    <span class="drop-ic big"><svg viewBox="0 0 24 24"><path d="M12 16V4m0 0-5 5m5-5 5 5M5 20h14"/></svg></span>
+    <strong>Déposer pour envoyer</strong>
+    <span>dans <b id="overlayDir">Racine</b></span>
+  </div>
+</div>
+
+<dialog id="dlg">
+  <form method="dialog" id="dlgForm">
+    <h3 id="dlgTitle"></h3>
+    <p id="dlgText"></p>
+    <input class="input" id="dlgInput" autocomplete="off">
+    <div class="dlg-actions">
+      <button class="btn outline" value="cancel" formnovalidate>Annuler</button>
+      <button class="btn primary" value="ok" id="dlgOk">OK</button>
+    </div>
+  </form>
+</dialog>
+
+<iframe name="dlFrame" id="dlFrame" hidden title="téléchargement"></iframe>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<input type="file" id="fileInput" multiple hidden>
+<input type="file" id="dirInput" webkitdirectory multiple hidden>
+<script src="/vendor/qrcode.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>

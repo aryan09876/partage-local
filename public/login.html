@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Connexion · Partage</title>
+<meta name="color-scheme" content="light dark">
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7.5' fill='%23007aff'/%3E%3Cpath d='M11 22V10m0 0-4 4m4-4 4 4M21 10v12m0 0-4-4m4 4 4-4' stroke='white' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/style.css">
+<style>
+  body { display: grid; place-items: center; min-height: 100vh; min-height: 100dvh; padding: 24px 16px; }
+  .login { width: min(380px, 100%); display: grid; justify-items: center; text-align: center; gap: 0; }
+  .login .logo { width: 72px; height: 72px; border-radius: 16px; margin-bottom: 18px; }
+  .login .logo svg { width: 42px; height: 42px; stroke-width: 2.2; }
+  .login h1 { font: 700 26px/1.2 var(--font-display); letter-spacing: -.025em; margin: 0 0 6px; }
+  .login .lead { color: var(--label-2); font-size: 14px; margin: 0 0 26px; }
+  .login form { width: 100%; display: grid; gap: 12px; }
+  .pw { position: relative; display: flex; align-items: center; background: var(--surface); border-radius: var(--r); box-shadow: var(--shadow); transition: box-shadow .15s var(--ease); }
+  .pw:focus-within { box-shadow: var(--shadow), 0 0 0 3px var(--ring); }
+  .pw input { flex: 1; min-width: 0; height: 48px; border: 0; outline: none; background: none; padding: 0 14px; font-size: 16px; border-radius: var(--r); }
+  .pw input:focus-visible { box-shadow: none; }
+  .pw input::placeholder { color: var(--label-2); }
+  .eye { width: 44px; height: 44px; margin-right: 2px; border: 0; background: none; border-radius: 50%; color: var(--label-2); cursor: pointer; display: grid; place-items: center; }
+  .eye:hover { color: var(--label); }
+  .eye svg { width: 19px; height: 19px; stroke: currentColor; stroke-width: 1.9; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .login .btn.primary { height: 48px; font-size: 16px; font-weight: 600; border-radius: var(--r); width: 100%; }
+  .login .btn.primary[disabled] { opacity: .6; cursor: default; transform: none; }
+  .spin { width: 18px; height: 18px; border-radius: 50%; border: 2.2px solid rgb(255 255 255 / .35); border-top-color: #fff; animation: rot .7s linear infinite; }
+  @keyframes rot { to { transform: rotate(360deg); } }
+  .err { min-height: 20px; margin: 2px 0 0; font-size: 13px; color: var(--red); }
+  .shake { animation: shake .4s var(--ease); }
+  @keyframes shake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+  .foot { margin-top: 22px; font-size: 12px; color: var(--label-2); display: flex; align-items: center; gap: 6px; }
+  .cert { margin-top: 6px; flex-direction: column; gap: 2px; }
+  .cert a { color: var(--blue); text-decoration: none; font-weight: 500; }
+  .cert a:hover { text-decoration: underline; }
+  .foot svg { width: 13px; height: 13px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+</style>
+</head>
+<body>
+<main class="login">
+  <span class="logo" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M11 22V10m0 0-4 4m4-4 4 4M21 10v12m0 0-4-4m4 4 4-4"/></svg></span>
+  <h1>Partage</h1>
+  <p class="lead">Saisissez le mot de passe pour accéder aux fichiers.</p>
+  <form id="f" novalidate>
+    <div class="pw" id="box">
+      <input id="pw" type="password" name="password" placeholder="Mot de passe" autocomplete="current-password" autofocus required aria-label="Mot de passe">
+      <button class="eye" type="button" id="eye" aria-label="Afficher le mot de passe" title="Afficher">
+        <svg viewBox="0 0 24 24" id="eyeIc"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+    <button class="btn primary" id="go" type="submit">Se connecter</button>
+    <p class="err" id="err" role="alert"></p>
+  </form>
+  <p class="foot"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span id="host"></span> · session gardée 30 jours</p>
+  <p class="foot cert"><a href="/ca.crt" id="caLink">Installer le certificat de sécurité</a><span>pour supprimer l'avertissement du navigateur</span></p>
+</main>
+<script>
+'use strict';
+const $ = (s) => document.getElementById(s);
+$('host').textContent = location.host;
+const EYE = '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>';
+const EYE_OFF = '<path d="M3 3l18 18M10.6 6.1A9.6 9.6 0 0 1 12 6c6 0 9.5 6 9.5 6a17 17 0 0 1-3.2 3.9M6.6 6.9C4 8.6 2.5 12 2.5 12s3.5 6.5 9.5 6.5c1.7 0 3.2-.4 4.5-1.1M9.9 9.9a3 3 0 0 0 4.2 4.2"/>';
+$('eye').addEventListener('click', () => {
+  const show = $('pw').type === 'password';
+  $('pw').type = show ? 'text' : 'password';
+  $('eyeIc').innerHTML = show ? EYE_OFF : EYE;
+  $('eye').setAttribute('aria-label', show ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
+  $('pw').focus();
+});
+$('pw').addEventListener('input', () => { $('err').textContent = ''; });
+$('f').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const pw = $('pw').value;
+  if (!pw) { $('err').textContent = 'Saisissez le mot de passe.'; $('pw').focus(); return; }
+  const go = $('go');
+  go.disabled = true;
+  go.innerHTML = '<span class="spin" aria-hidden="true"></span><span>Connexion…</span>';
+  try {
+    const r = await fetch('/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ password: pw }) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || `Erreur ${r.status}`);
+    const next = new URLSearchParams(location.search).get('next');
+    location.replace(next && next.startsWith('/') && !next.startsWith('//') ? next : '/');
+  } catch (err) {
+    $('err').textContent = err.message === 'Failed to fetch' ? 'Serveur injoignable. Vérifiez la connexion au réseau.' : err.message;
+    const box = $('box');
+    box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake');
+    $('pw').select();
+    go.disabled = false;
+    go.textContent = 'Se connecter';
+  }
+});
+</script>
+</body>
+</html>

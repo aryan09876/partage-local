@@ -1,0 +1,16 @@
+{
+  "name": "partage-local",
+  "version": "2.0.0",
+  "description": "Partage de fichiers en réseau local, rapide et sans dépendance : envoi sans limite de taille, liens courts, notes partagées, temps réel.",
+  "license": "MIT",
+  "main": "server.js",
+  "bin": { "partage": "manage.js" },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test",
+    "certs": "node certs.js"
+  },
+  "engines": { "node": ">=20" },
+  "keywords": ["file-sharing", "lan", "self-hosted", "file-transfer", "pastebin", "zero-dependency"],
+  "repository": { "type": "git", "url": "https://github.com/aryan09876/partage-local.git" }
+}

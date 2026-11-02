@@ -1,0 +1,13 @@
+# Données et secrets de l'installation : ne jamais publier
+auth.json
+partage.env
+certs/
+data/
+storage/
+*.log
+*.bak*
+*.tar.gz
+
+node_modules/
+.DS_Store
+Thumbs.db

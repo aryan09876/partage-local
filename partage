@@ -1,0 +1,5 @@
+#!/bin/sh
+# Lanceur Linux / macOS : ./partage install | status | logs | set port 8080 | help
+DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+command -v node >/dev/null 2>&1 || { echo "Node.js 20 ou plus récent est nécessaire : https://nodejs.org" >&2; exit 1; }
+exec node "$DIR/manage.js" "$@"
