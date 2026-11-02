@@ -192,6 +192,11 @@ async function waitUp(cfg) {
   for (let i = 0; i < 40; i++) { if (await health(cfg)) return true; await new Promise((r) => setTimeout(r, 500)); }
   return false;
 }
+// launchctl bootout et schtasks /End rendent la main avant la fin du serveur
+async function waitDown(cfg) {
+  for (let i = 0; i < 30; i++) { if (!(await health(cfg))) return true; await new Promise((r) => setTimeout(r, 500)); }
+  return false;
+}
 function showUrls(cfg) {
   const s = scheme(cfg);
   say(`  ${bold('Adresses :')}`);
@@ -598,14 +603,15 @@ async function cmdUpdate() {
   if (await waitUp(cfg)) ok('Partage est à jour et redémarré'); else warn('Partage ne répond pas : partage logs');
 }
 
-function cmdUninstall(args) {
+async function cmdUninstall(args) {
   needAdmin(['uninstall', ...args]);
   const cfg = loadConf();
   svc.remove();
   fwRemove(cfg);
+  if (!(await waitDown(cfg))) warn('Le serveur répond encore : arrêtez-le à la main');
   ok('Service supprimé et règles de pare-feu retirées');
   if (args.includes('--purge')) {
-    for (const p of ['data', 'auth.json', 'certs', 'partage.env']) fs.rmSync(path.join(APP, p), { recursive: true, force: true });
+    for (const p of ['data', 'auth.json', 'certs', 'partage.env']) fs.rmSync(path.join(APP, p), { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
     ok(`Configuration, mot de passe, liens et notes effacés (fichiers partagés conservés : ${cfg.SHARE_DIR})`);
   } else {
     saveConf(cfg);

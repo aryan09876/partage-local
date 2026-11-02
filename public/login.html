@@ -81,8 +81,13 @@ $('f').addEventListener('submit', async (e) => {
     const r = await fetch('/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ password: pw }) });
     const d = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(d.error || `Erreur ${r.status}`);
-    const next = new URLSearchParams(location.search).get('next');
-    location.replace(next && next.startsWith('/') && !next.startsWith('//') ? next : '/');
+    // retour à la page demandée, uniquement sur ce même site (« /\autre.site » compris)
+    let dest = '/';
+    try {
+      const u = new URL(new URLSearchParams(location.search).get('next') || '/', location.origin);
+      if (u.origin === location.origin) dest = u.pathname + u.search + u.hash;
+    } catch { /* adresse invalide : accueil */ }
+    location.replace(dest);
   } catch (err) {
     $('err').textContent = err.message === 'Failed to fetch' ? 'Serveur injoignable. Vérifiez la connexion au réseau.' : err.message;
     const box = $('box');
