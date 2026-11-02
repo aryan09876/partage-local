@@ -85,7 +85,7 @@ $('f').addEventListener('submit', async (e) => {
     let dest = '/';
     try {
       const u = new URL(new URLSearchParams(location.search).get('next') || '/', location.origin);
-      if (u.origin === location.origin) dest = u.pathname + u.search + u.hash;
+      if (u.origin === location.origin) dest = u.href; // adresse absolue : « /.//autre.site » reste ici
     } catch { /* adresse invalide : accueil */ }
     location.replace(dest);
   } catch (err) {
